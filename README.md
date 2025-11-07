@@ -19,8 +19,8 @@ Pastikan kamu memiliki:
 1. **Clone repository**
 
 ```bash
-git clone <URL_REPO_ANDA>
-cd <NAMA_FOLDER_PROJECT>
+git clone https://github.com/bazudev/-wayan_rimba_bazudewa-_FrontEndTest_EZV.git nextjs-demoproject
+cd nextjs-demoproject
 ```
 
 2. **Install dependencies**
