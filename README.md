@@ -1,27 +1,161 @@
-# Redux Toolkit TypeScript Example
+# Dokumentasi Todo List Page - SSR & ISR dengan RTK Query
 
-This example shows how to integrate Next.js with [Redux Toolkit](https://redux-toolkit.js.org).
+# Test - PT. EZV Service Indonesia
 
-**Redux Toolkit**(also known as "RTK" for short) provides a standardized way to write Redux logic. It includes utilities that help simplify many common use cases, including [store setup](https://redux-toolkit.js.org/api/configureStore), [creating reducers and writing immutable update logic](https://redux-toolkit.js.org/api/createreducer), and even [creating entire "slices" of state at once](https://redux-toolkit.js.org/api/createslice). This example showcases each of these features in conjunction with Next.js.
+Skill Test - Frontend Developer
 
-## Deploy Your Own
+Proyek ini merupakan aplikasi **Next.js** yang menampilkan fitur `todossr` dan `todoisr`. Aplikasi ini menggunakan template `with-redux` dari Next.js dan fetch data menggunakan **Redux Toolkit RTK Query**.
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/next.js/tree/canary/examples/with-redux&project-name=with-redux&repository-name=with-redux)
+## Prasyarat
 
-## How to Use
+Pastikan kamu memiliki:
 
-Execute [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app) with [npm](https://docs.npmjs.com/cli/init), [Yarn](https://yarnpkg.com/lang/en/docs/cli/create/), or [pnpm](https://pnpm.io) to bootstrap the example:
 
-```bash
-npx create-next-app --example with-redux with-redux-app
-```
+* Node.js v20 atau lebih baru
+* pnpm v10 atau lebih baru
 
-```bash
-yarn create next-app --example with-redux with-redux-app
-```
+## Setup Project
+
+1. **Clone repository**
 
 ```bash
-pnpm create next-app --example with-redux with-redux-app
+git clone <URL_REPO_ANDA>
+cd <NAMA_FOLDER_PROJECT>
 ```
 
-Deploy it to the cloud with [Vercel](https://vercel.com/new?utm_source=github&utm_medium=readme&utm_campaign=next-example) ([Documentation](https://nextjs.org/docs/deployment)).
+2. **Install dependencies**
+
+```bash
+npm install
+```
+
+3. **Menjalankan development server**
+
+```bash
+npm run dev
+```
+
+Akses aplikasi di: [http://localhost:3000](http://localhost:3000)
+
+
+## Fitur
+
+* Fetch daftar todo dari [JSONPlaceholder](https://jsonplaceholder.typicode.com/todos)
+* Render halaman menggunakan **SSR** dan **ISR**
+* State management menggunakan **Redux Toolkit**
+
+## Catatan
+
+* Pastikan environment mendukung Next.js terbaru.
+* SSR halaman akan selalu fetch data terbaru setiap request.
+* ISR halaman akan revalidate data sesuai konfigurasi `revalidate`.
+
+
+## 1. Overview
+
+Project ini memiliki **dua versi page** untuk menampilkan daftar todo dari API JSONPlaceholder:
+
+| Page       | Render Type | Initial Load                   | Revalidate / Cache                               |
+| ---------- | ----------- | ------------------------------ | ------------------------------------------------ |
+| `/todossr` | SSR         | Page  fetch setiap request    | Fetch fresh tiap request (`cache: 'no-store'`)   |
+| `/todoisr` | ISR         | Page  pre-rendered statically | Regenerate page tiap 30 detik (`revalidate: 30`) |
+
+**Client Component**: `TodoListPage`
+
+* Menghandle **pagination client-side**
+* Menambahkan todo baru di **client state / RTK Query cache**
+
+---
+
+## 2. Approach / Arsitektur
+
+### Pendekatan
+
+1. **SSR (Server-Side Rendered)**
+
+   * Fetch **page ** dari API setiap request
+   * Mengirimkan  `totalPages` ke client component
+2. **ISR (Incremental Static Regeneration)**
+
+   * Fetch **page ** saat build-time
+   * Regenerate page setiap interval `revalidate` (30 detik)
+   * Initial page ringan dan cepat (statis)
+3. **Client-side Pagination**
+
+   * RTK Query fetch data page 2, 3,... berdasarkan `_start` & `_limit`
+4. **Add Todo**
+
+   * JSONPlaceholder tidak menyimpan data, jadi todo baru hanya melakukan post request tanpa memunculkan effect apapun pada UI 
+
+---
+
+### Diagram Alur
+
+```
+SSR Page (/todossr):
+Client request → Server fetch page  → Render HTML → Client receives initialTodos
+Client paginate → RTK Query fetch page N
+Client add todo → update client  cache
+
+ISR Page (/todoisr):
+Build-time → Server fetch page  → Generate static HTML
+Revalidate tiap 30 detik → update page  di server
+Client paginate → RTK Query fetch page N
+Client add todo → update client  cache
+```
+
+---
+
+## 3. Struktur File
+
+```
+app/
+ ├─ todossr/
+ │   └─ page.tsx             # SSR page
+ ├─ todoisr/
+ │   └─ page.tsx             # ISR page
+ ├─ components/todo/
+ │   ├─ Form.tsx             # Client component
+ │   ├─ List.tsx             # Client component
+ │   └─ Todo.tsx             # Client component
+ ├─ layout.tsx               # Layout for pages
+ └─ StoreProvider.tsx        # Redux Provider
+
+lib/
+ ├─ features/todo/
+ │   └─ todoApiSlice.ts      # RTK Query slice for todos
+ ├─ createAppSlice.ts
+ ├─ hooks.ts
+ └─ store.ts                 # Redux store
+
+styles/
+ └─ globals.css              # Global styles
+
+public/
+ └─ icon.ico
+
+```
+
+---
+
+
+
+## 4. Keuntungan & Kekurangan
+
+| Page  | Keuntungan                                             | Kekurangan                         |
+| ----- | ------------------------------------------------------ | ---------------------------------- |
+| SSR   | Data page  selalu fresh, cocok SEO                    | Lebih banyak load server           |
+| ISR   | Page  cepat karena statis, bisa cache                 | Data page  tidak real-time selalu |
+| Kedua | RTK Query + pagination fleksibel, add todo cepat di UI | Todo baru hilang saat reload page  |
+
+---
+
+## 5. Kesimpulan
+
+* **SSR vs ISR** berbeda hanya di **initial page render**
+* **Client-side pagination dan add todo** sama di kedua page
+* Pendekatan ini **memisahkan server-side render (SSR/ISR)** dan **client-side interaksi (RTK Query + state)**
+
+---
+
+
